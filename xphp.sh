@@ -11,24 +11,39 @@ brew_php_versions=("5.6" "7.0" "7.1" "7.2" "7.3" "7.4" "8.0" "8.1" "8.2" "8.3" "
 homebrew_path=$(brew --prefix)
 target_version=$1
 
+# Display help and exit if the user did not specify a version
 if [[ -z "$target_version" ]]; then
     echo "PHP-FPM Switcher for Nginx - v$script_version"
     echo "Switch between Brew-installed PHP-FPM versions."
     echo
-    echo "usage: $(basename "$0") version"
+    echo "usage: $(basename "$0") [ version | - ]"
     echo "    version    one of:" "${brew_php_versions[@]}"
+    echo "    -          toggles to previous activated version"
     echo
     exit
 fi
 
+# Support to quick toggle to previous version
+if [[ "$target_version" == "-" ]]; then
+  if [[ -f /tmp/xphp-last-version ]]; then
+    read -r target_version < /tmp/xphp-last-version
+  else
+    echo "No switched version yet. Switch to a specific version instead."
+    echo "Available: ${brew_php_versions[@]}"
+    exit;
+  fi
+fi
+
 php_version="php@$target_version"
 
+# Build array of installed PHP versions
 for version in ${brew_php_versions[*]}; do
     if [[ -d "$homebrew_path/etc/php/$version" ]]; then
         php_installed_array+=("$version")
     fi
 done
 
+# Check that the requested version is supported and installed
 if [[ " ${brew_php_versions[*]} " == *"$target_version"* ]]; then
     if [[ " ${php_installed_array[*]} " == *"$target_version"* ]]; then
         echo "Switching to $php_version"
